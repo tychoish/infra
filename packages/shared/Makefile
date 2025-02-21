@@ -26,3 +26,4 @@ migrate:
 	@POSTGRES_CONNECTION_STRING=$(POSTGRES_CONNECTION_STRING) go run ./scripts/migrate.go
 	@rm ./migration.sql
 	@echo "Done"
+

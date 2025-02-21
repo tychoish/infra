@@ -8,6 +8,7 @@ import (
 	"math"
 	"net"
 	"sync"
+	"sync/atomic"
 
 	"github.com/grpc-ecosystem/go-grpc-middleware/v2/interceptors/recovery"
 	"go.opentelemetry.io/contrib/instrumentation/google.golang.org/grpc/otelgrpc"
@@ -17,7 +18,10 @@ import (
 	"google.golang.org/grpc/health"
 	"google.golang.org/grpc/health/grpc_health_v1"
 
+	"entgo.io/ent/dialect"
+	"entgo.io/ent/dialect/sql"
 	"github.com/e2b-dev/infra/packages/orchestrator/internal/dns"
+	"github.com/e2b-dev/infra/packages/orchestrator/internal/pkg/models"
 	"github.com/e2b-dev/infra/packages/orchestrator/internal/sandbox"
 	"github.com/e2b-dev/infra/packages/orchestrator/internal/sandbox/network"
 	"github.com/e2b-dev/infra/packages/orchestrator/internal/sandbox/template"
@@ -44,6 +48,8 @@ type Service struct {
 	grpc     *grpc.Server
 	dns      *dns.DNS
 	port     uint16
+	db       *models.Client
+	started  atomic.Bool
 	shutdown struct {
 		once sync.Once
 		op   func(context.Context) error
@@ -87,6 +93,17 @@ func New(ctx context.Context, port uint) (*Service, error) {
 		}
 	}
 
+	// BLOCK: setup database
+	{
+		const dbConnStr = "file:./db/sandboxes.db?_journal_mode=wal"
+		drv, err := sql.Open(dialect.SQLite, dbConnStr)
+		if err != nil {
+			return nil, fmt.Errorf("connecting to %q: %w", dbConnStr, err)
+		}
+
+		srv.db = models.NewClient(models.Driver(drv))
+	}
+
 	orchestrator.RegisterSandboxServiceServer(srv.grpc, srv.server)
 	grpc_health_v1.RegisterHealthServer(srv.grpc, health.NewServer())
 
@@ -99,8 +116,18 @@ func (srv *Service) Start(context.Context) error {
 		return errors.New("orchestrator services are not initialized")
 	}
 
+	if !srv.started.CompareAndSwap(false, true) {
+		return errors.New("cannot start the orchestrator service more than once")
+	}
+	log.Print("starting orchestrator service")
+
+	wg := sync.WaitGroup{}
+	wg.Add(1)
 	go func() {
-		log.Printf("Starting DNS server")
+		defer log.Print("DNS server return")
+		defer wg.Done()
+
+		log.Print("Starting DNS server")
 		if err := srv.dns.Start("127.0.0.4", 53); err != nil {
 			log.Panic(fmt.Errorf("Failed running DNS server: %w", err))
 		}
@@ -112,24 +139,35 @@ func (srv *Service) Start(context.Context) error {
 		return fmt.Errorf("failed to listen on port %d: %w", srv.port, err)
 	}
 
-	log.Printf("starting server on port %d", srv.port)
-
+	wg.Add(1)
 	go func() {
+		defer log.Print("gRPC service returned")
+		defer wg.Done()
+
+		log.Printf("starting server on port %d", srv.port)
 		if err := srv.grpc.Serve(lis); err != nil {
 			log.Panic(fmt.Errorf("failed to serve: %w", err))
 		}
 	}()
 
 	srv.shutdown.op = func(ctx context.Context) error {
+		defer log.Print("orchestrator service has completed shutdown")
+
 		var errs []error
 
 		srv.grpc.GracefulStop()
+
+		if err := lis.Close(); err != nil {
+			errs = append(errs, err)
+		}
+
+		wg.Wait()
 
 		if err := srv.dns.Close(ctx); err != nil {
 			errs = append(errs, err)
 		}
 
-		if err := lis.Close(); err != nil {
+		if err := srv.db.Close(); err != nil {
 			errs = append(errs, err)
 		}
 
@@ -140,6 +178,6 @@ func (srv *Service) Start(context.Context) error {
 }
 
 func (srv *Service) Close(ctx context.Context) error {
-	srv.shutdown.once.Do(func() { srv.shutdown.err = srv.shutdown.op(ctx) })
+	srv.shutdown.once.Do(func() { srv.shutdown.err = srv.shutdown.op(ctx); srv.shutdown.op = nil })
 	return srv.shutdown.err
 }

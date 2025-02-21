@@ -4,7 +4,6 @@ import (
 	"context"
 	"errors"
 	"fmt"
-	"log"
 	"os"
 	"sync"
 
@@ -62,26 +61,23 @@ func (s *server) Create(ctx context.Context, req *orchestrator.SandboxCreateRequ
 		req.Sandbox.BaseTemplateId,
 	)
 	if err != nil {
-		log.Printf("failed to create sandbox -> clean up: %v", err)
 		cleanupErr := cleanup.Run()
 
-		errMsg := fmt.Errorf("failed to create sandbox: %w", errors.Join(err, context.Cause(ctx), cleanupErr))
-		telemetry.ReportCriticalError(ctx, errMsg)
+		err := fmt.Errorf("failed create sandbox %q: %w", req.Sandbox.SandboxId, errors.Join(err, context.Cause(ctx), cleanupErr))
+		telemetry.ReportCriticalError(ctx, err)
 
-		return nil, status.New(codes.Internal, errMsg.Error()).Err()
+		return nil, status.New(codes.Internal, err.Error()).Err()
 	}
 
 	s.sandboxes.Insert(req.Sandbox.SandboxId, sbx)
 
 	go func() {
-		waitErr := sbx.Wait()
-		if waitErr != nil {
-			fmt.Fprintf(os.Stderr, "failed to wait for Sandbox: %v\n", waitErr)
+		if err := sbx.Wait(); err != nil {
+			fmt.Fprintf(os.Stderr, "failed to wait for Sandbox: %v\n", err)
 		}
 
-		cleanupErr := cleanup.Run()
-		if cleanupErr != nil {
-			fmt.Fprintf(os.Stderr, "failed to cleanup Sandbox: %v\n", cleanupErr)
+		if err := cleanup.Run(); err != nil {
+			fmt.Fprintf(os.Stderr, "failed to cleanup Sandbox: %v\n", err)
 		}
 
 		s.sandboxes.Remove(req.Sandbox.SandboxId)
