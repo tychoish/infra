@@ -12,9 +12,10 @@ var (
 	SandboxesColumns = []*schema.Column{
 		{Name: "id", Type: field.TypeString, Unique: true},
 		{Name: "started_at", Type: field.TypeTime, Default: "CURRENT_TIMESTAMP"},
-		{Name: "ended_at", Type: field.TypeTime},
 		{Name: "updated_at", Type: field.TypeTime},
-		{Name: "status", Type: field.TypeEnum, Enums: []string{"running", "terminated"}},
+		{Name: "terminated_at", Type: field.TypeTime},
+		{Name: "deadline", Type: field.TypeTime},
+		{Name: "status", Type: field.TypeEnum, Enums: []string{"pending", "running", "paused", "terminated"}},
 		{Name: "duration_ms", Type: field.TypeInt64},
 		{Name: "version", Type: field.TypeInt64},
 		{Name: "global_version", Type: field.TypeInt64},
@@ -28,9 +29,9 @@ var (
 	// StatusColumns holds the columns for the "status" table.
 	StatusColumns = []*schema.Column{
 		{Name: "id", Type: field.TypeInt, Increment: true},
-		{Name: "version", Type: field.TypeInt64},
+		{Name: "version", Type: field.TypeInt64, Unique: true},
 		{Name: "updated_at", Type: field.TypeTime},
-		{Name: "status", Type: field.TypeEnum, Enums: []string{"running", "terminating"}, Default: "running"},
+		{Name: "status", Type: field.TypeEnum, Enums: []string{"initializing", "running", "draining", "terminating"}, Default: "running"},
 	}
 	// StatusTable holds the schema information for the "status" table.
 	StatusTable = &schema.Table{

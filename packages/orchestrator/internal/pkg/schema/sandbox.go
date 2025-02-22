@@ -19,9 +19,10 @@ func (Sandbox) Fields() []ent.Field {
 			Annotations(
 				entsql.Default("CURRENT_TIMESTAMP"),
 			),
-		field.Time("ended_at").Nillable(),
 		field.Time("updated_at").Default(time.Now),
-		field.Enum("status").NamedValues("pending", "running", "paused", "terminated"),
+		field.Time("terminated_at").Nillable(),
+		field.Time("deadline").Nillable(),
+		field.Enum("status").Values("pending", "running", "paused", "terminated").Default("pending"),
 		field.Int64("duration_ms").NonNegative(),
 		field.Int64("version").NonNegative().Comment("an incrementing clock of this "),
 		field.Int64("global_version").NonNegative().Comment("a record of the version of the global state of the last modification."),

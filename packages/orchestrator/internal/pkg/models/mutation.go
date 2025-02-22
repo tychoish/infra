@@ -36,8 +36,9 @@ type SandboxMutation struct {
 	typ               string
 	id                *string
 	started_at        *time.Time
-	ended_at          *time.Time
 	updated_at        *time.Time
+	terminated_at     *time.Time
+	deadline          *time.Time
 	status            *sandbox.Status
 	duration_ms       *int64
 	addduration_ms    *int64
@@ -191,42 +192,6 @@ func (m *SandboxMutation) ResetStartedAt() {
 	m.started_at = nil
 }
 
-// SetEndedAt sets the "ended_at" field.
-func (m *SandboxMutation) SetEndedAt(t time.Time) {
-	m.ended_at = &t
-}
-
-// EndedAt returns the value of the "ended_at" field in the mutation.
-func (m *SandboxMutation) EndedAt() (r time.Time, exists bool) {
-	v := m.ended_at
-	if v == nil {
-		return
-	}
-	return *v, true
-}
-
-// OldEndedAt returns the old "ended_at" field's value of the Sandbox entity.
-// If the Sandbox object wasn't provided to the builder, the object is fetched from the database.
-// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
-func (m *SandboxMutation) OldEndedAt(ctx context.Context) (v *time.Time, err error) {
-	if !m.op.Is(OpUpdateOne) {
-		return v, errors.New("OldEndedAt is only allowed on UpdateOne operations")
-	}
-	if m.id == nil || m.oldValue == nil {
-		return v, errors.New("OldEndedAt requires an ID field in the mutation")
-	}
-	oldValue, err := m.oldValue(ctx)
-	if err != nil {
-		return v, fmt.Errorf("querying old value for OldEndedAt: %w", err)
-	}
-	return oldValue.EndedAt, nil
-}
-
-// ResetEndedAt resets all changes to the "ended_at" field.
-func (m *SandboxMutation) ResetEndedAt() {
-	m.ended_at = nil
-}
-
 // SetUpdatedAt sets the "updated_at" field.
 func (m *SandboxMutation) SetUpdatedAt(t time.Time) {
 	m.updated_at = &t
@@ -261,6 +226,78 @@ func (m *SandboxMutation) OldUpdatedAt(ctx context.Context) (v time.Time, err er
 // ResetUpdatedAt resets all changes to the "updated_at" field.
 func (m *SandboxMutation) ResetUpdatedAt() {
 	m.updated_at = nil
+}
+
+// SetTerminatedAt sets the "terminated_at" field.
+func (m *SandboxMutation) SetTerminatedAt(t time.Time) {
+	m.terminated_at = &t
+}
+
+// TerminatedAt returns the value of the "terminated_at" field in the mutation.
+func (m *SandboxMutation) TerminatedAt() (r time.Time, exists bool) {
+	v := m.terminated_at
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldTerminatedAt returns the old "terminated_at" field's value of the Sandbox entity.
+// If the Sandbox object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *SandboxMutation) OldTerminatedAt(ctx context.Context) (v *time.Time, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldTerminatedAt is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldTerminatedAt requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldTerminatedAt: %w", err)
+	}
+	return oldValue.TerminatedAt, nil
+}
+
+// ResetTerminatedAt resets all changes to the "terminated_at" field.
+func (m *SandboxMutation) ResetTerminatedAt() {
+	m.terminated_at = nil
+}
+
+// SetDeadline sets the "deadline" field.
+func (m *SandboxMutation) SetDeadline(t time.Time) {
+	m.deadline = &t
+}
+
+// Deadline returns the value of the "deadline" field in the mutation.
+func (m *SandboxMutation) Deadline() (r time.Time, exists bool) {
+	v := m.deadline
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldDeadline returns the old "deadline" field's value of the Sandbox entity.
+// If the Sandbox object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *SandboxMutation) OldDeadline(ctx context.Context) (v *time.Time, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldDeadline is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldDeadline requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldDeadline: %w", err)
+	}
+	return oldValue.Deadline, nil
+}
+
+// ResetDeadline resets all changes to the "deadline" field.
+func (m *SandboxMutation) ResetDeadline() {
+	m.deadline = nil
 }
 
 // SetStatus sets the "status" field.
@@ -501,15 +538,18 @@ func (m *SandboxMutation) Type() string {
 // order to get all numeric fields that were incremented/decremented, call
 // AddedFields().
 func (m *SandboxMutation) Fields() []string {
-	fields := make([]string, 0, 7)
+	fields := make([]string, 0, 8)
 	if m.started_at != nil {
 		fields = append(fields, sandbox.FieldStartedAt)
 	}
-	if m.ended_at != nil {
-		fields = append(fields, sandbox.FieldEndedAt)
-	}
 	if m.updated_at != nil {
 		fields = append(fields, sandbox.FieldUpdatedAt)
+	}
+	if m.terminated_at != nil {
+		fields = append(fields, sandbox.FieldTerminatedAt)
+	}
+	if m.deadline != nil {
+		fields = append(fields, sandbox.FieldDeadline)
 	}
 	if m.status != nil {
 		fields = append(fields, sandbox.FieldStatus)
@@ -533,10 +573,12 @@ func (m *SandboxMutation) Field(name string) (ent.Value, bool) {
 	switch name {
 	case sandbox.FieldStartedAt:
 		return m.StartedAt()
-	case sandbox.FieldEndedAt:
-		return m.EndedAt()
 	case sandbox.FieldUpdatedAt:
 		return m.UpdatedAt()
+	case sandbox.FieldTerminatedAt:
+		return m.TerminatedAt()
+	case sandbox.FieldDeadline:
+		return m.Deadline()
 	case sandbox.FieldStatus:
 		return m.Status()
 	case sandbox.FieldDurationMs:
@@ -556,10 +598,12 @@ func (m *SandboxMutation) OldField(ctx context.Context, name string) (ent.Value,
 	switch name {
 	case sandbox.FieldStartedAt:
 		return m.OldStartedAt(ctx)
-	case sandbox.FieldEndedAt:
-		return m.OldEndedAt(ctx)
 	case sandbox.FieldUpdatedAt:
 		return m.OldUpdatedAt(ctx)
+	case sandbox.FieldTerminatedAt:
+		return m.OldTerminatedAt(ctx)
+	case sandbox.FieldDeadline:
+		return m.OldDeadline(ctx)
 	case sandbox.FieldStatus:
 		return m.OldStatus(ctx)
 	case sandbox.FieldDurationMs:
@@ -584,19 +628,26 @@ func (m *SandboxMutation) SetField(name string, value ent.Value) error {
 		}
 		m.SetStartedAt(v)
 		return nil
-	case sandbox.FieldEndedAt:
-		v, ok := value.(time.Time)
-		if !ok {
-			return fmt.Errorf("unexpected type %T for field %s", value, name)
-		}
-		m.SetEndedAt(v)
-		return nil
 	case sandbox.FieldUpdatedAt:
 		v, ok := value.(time.Time)
 		if !ok {
 			return fmt.Errorf("unexpected type %T for field %s", value, name)
 		}
 		m.SetUpdatedAt(v)
+		return nil
+	case sandbox.FieldTerminatedAt:
+		v, ok := value.(time.Time)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetTerminatedAt(v)
+		return nil
+	case sandbox.FieldDeadline:
+		v, ok := value.(time.Time)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetDeadline(v)
 		return nil
 	case sandbox.FieldStatus:
 		v, ok := value.(sandbox.Status)
@@ -717,11 +768,14 @@ func (m *SandboxMutation) ResetField(name string) error {
 	case sandbox.FieldStartedAt:
 		m.ResetStartedAt()
 		return nil
-	case sandbox.FieldEndedAt:
-		m.ResetEndedAt()
-		return nil
 	case sandbox.FieldUpdatedAt:
 		m.ResetUpdatedAt()
+		return nil
+	case sandbox.FieldTerminatedAt:
+		m.ResetTerminatedAt()
+		return nil
+	case sandbox.FieldDeadline:
+		m.ResetDeadline()
 		return nil
 	case sandbox.FieldStatus:
 		m.ResetStatus()

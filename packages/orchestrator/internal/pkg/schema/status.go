@@ -15,8 +15,8 @@ type Status struct {
 
 func (Status) Fields() []ent.Field {
 	return []ent.Field{
-		field.Int64("version").NonNegative(),
+		field.Int64("version").NonNegative().Unique(),
 		field.Time("updated_at").Default(time.Now),
-		field.Enum("status").NamedValues("initializing", "running", "draining", "terminating").Default("running"),
+		field.Enum("status").Values("initializing", "running", "draining", "terminating").Default("running"),
 	}
 }

@@ -19,10 +19,12 @@ type Sandbox struct {
 	ID string `json:"id,omitempty"`
 	// StartedAt holds the value of the "started_at" field.
 	StartedAt time.Time `json:"started_at,omitempty"`
-	// EndedAt holds the value of the "ended_at" field.
-	EndedAt *time.Time `json:"ended_at,omitempty"`
 	// UpdatedAt holds the value of the "updated_at" field.
 	UpdatedAt time.Time `json:"updated_at,omitempty"`
+	// TerminatedAt holds the value of the "terminated_at" field.
+	TerminatedAt *time.Time `json:"terminated_at,omitempty"`
+	// Deadline holds the value of the "deadline" field.
+	Deadline *time.Time `json:"deadline,omitempty"`
 	// Status holds the value of the "status" field.
 	Status sandbox.Status `json:"status,omitempty"`
 	// DurationMs holds the value of the "duration_ms" field.
@@ -43,7 +45,7 @@ func (*Sandbox) scanValues(columns []string) ([]any, error) {
 			values[i] = new(sql.NullInt64)
 		case sandbox.FieldID, sandbox.FieldStatus:
 			values[i] = new(sql.NullString)
-		case sandbox.FieldStartedAt, sandbox.FieldEndedAt, sandbox.FieldUpdatedAt:
+		case sandbox.FieldStartedAt, sandbox.FieldUpdatedAt, sandbox.FieldTerminatedAt, sandbox.FieldDeadline:
 			values[i] = new(sql.NullTime)
 		default:
 			values[i] = new(sql.UnknownType)
@@ -72,18 +74,25 @@ func (s *Sandbox) assignValues(columns []string, values []any) error {
 			} else if value.Valid {
 				s.StartedAt = value.Time
 			}
-		case sandbox.FieldEndedAt:
-			if value, ok := values[i].(*sql.NullTime); !ok {
-				return fmt.Errorf("unexpected type %T for field ended_at", values[i])
-			} else if value.Valid {
-				s.EndedAt = new(time.Time)
-				*s.EndedAt = value.Time
-			}
 		case sandbox.FieldUpdatedAt:
 			if value, ok := values[i].(*sql.NullTime); !ok {
 				return fmt.Errorf("unexpected type %T for field updated_at", values[i])
 			} else if value.Valid {
 				s.UpdatedAt = value.Time
+			}
+		case sandbox.FieldTerminatedAt:
+			if value, ok := values[i].(*sql.NullTime); !ok {
+				return fmt.Errorf("unexpected type %T for field terminated_at", values[i])
+			} else if value.Valid {
+				s.TerminatedAt = new(time.Time)
+				*s.TerminatedAt = value.Time
+			}
+		case sandbox.FieldDeadline:
+			if value, ok := values[i].(*sql.NullTime); !ok {
+				return fmt.Errorf("unexpected type %T for field deadline", values[i])
+			} else if value.Valid {
+				s.Deadline = new(time.Time)
+				*s.Deadline = value.Time
 			}
 		case sandbox.FieldStatus:
 			if value, ok := values[i].(*sql.NullString); !ok {
@@ -148,13 +157,18 @@ func (s *Sandbox) String() string {
 	builder.WriteString("started_at=")
 	builder.WriteString(s.StartedAt.Format(time.ANSIC))
 	builder.WriteString(", ")
-	if v := s.EndedAt; v != nil {
-		builder.WriteString("ended_at=")
+	builder.WriteString("updated_at=")
+	builder.WriteString(s.UpdatedAt.Format(time.ANSIC))
+	builder.WriteString(", ")
+	if v := s.TerminatedAt; v != nil {
+		builder.WriteString("terminated_at=")
 		builder.WriteString(v.Format(time.ANSIC))
 	}
 	builder.WriteString(", ")
-	builder.WriteString("updated_at=")
-	builder.WriteString(s.UpdatedAt.Format(time.ANSIC))
+	if v := s.Deadline; v != nil {
+		builder.WriteString("deadline=")
+		builder.WriteString(v.Format(time.ANSIC))
+	}
 	builder.WriteString(", ")
 	builder.WriteString("status=")
 	builder.WriteString(fmt.Sprintf("%v", s.Status))

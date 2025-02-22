@@ -16,10 +16,12 @@ const (
 	FieldID = "id"
 	// FieldStartedAt holds the string denoting the started_at field in the database.
 	FieldStartedAt = "started_at"
-	// FieldEndedAt holds the string denoting the ended_at field in the database.
-	FieldEndedAt = "ended_at"
 	// FieldUpdatedAt holds the string denoting the updated_at field in the database.
 	FieldUpdatedAt = "updated_at"
+	// FieldTerminatedAt holds the string denoting the terminated_at field in the database.
+	FieldTerminatedAt = "terminated_at"
+	// FieldDeadline holds the string denoting the deadline field in the database.
+	FieldDeadline = "deadline"
 	// FieldStatus holds the string denoting the status field in the database.
 	FieldStatus = "status"
 	// FieldDurationMs holds the string denoting the duration_ms field in the database.
@@ -36,8 +38,9 @@ const (
 var Columns = []string{
 	FieldID,
 	FieldStartedAt,
-	FieldEndedAt,
 	FieldUpdatedAt,
+	FieldTerminatedAt,
+	FieldDeadline,
 	FieldStatus,
 	FieldDurationMs,
 	FieldVersion,
@@ -74,8 +77,10 @@ type Status string
 
 // Status values.
 const (
-	StatusPending Status = "running"
-	StatusPaused  Status = "terminated"
+	StatusPending    Status = "pending"
+	StatusRunning    Status = "running"
+	StatusPaused     Status = "paused"
+	StatusTerminated Status = "terminated"
 )
 
 func (s Status) String() string {
@@ -85,7 +90,7 @@ func (s Status) String() string {
 // StatusValidator is a validator for the "status" field enum values. It is called by the builders before save.
 func StatusValidator(s Status) error {
 	switch s {
-	case StatusPending, StatusPaused:
+	case StatusPending, StatusRunning, StatusPaused, StatusTerminated:
 		return nil
 	default:
 		return fmt.Errorf("sandbox: invalid enum value for status field: %q", s)
@@ -105,14 +110,19 @@ func ByStartedAt(opts ...sql.OrderTermOption) OrderOption {
 	return sql.OrderByField(FieldStartedAt, opts...).ToFunc()
 }
 
-// ByEndedAt orders the results by the ended_at field.
-func ByEndedAt(opts ...sql.OrderTermOption) OrderOption {
-	return sql.OrderByField(FieldEndedAt, opts...).ToFunc()
-}
-
 // ByUpdatedAt orders the results by the updated_at field.
 func ByUpdatedAt(opts ...sql.OrderTermOption) OrderOption {
 	return sql.OrderByField(FieldUpdatedAt, opts...).ToFunc()
+}
+
+// ByTerminatedAt orders the results by the terminated_at field.
+func ByTerminatedAt(opts ...sql.OrderTermOption) OrderOption {
+	return sql.OrderByField(FieldTerminatedAt, opts...).ToFunc()
+}
+
+// ByDeadline orders the results by the deadline field.
+func ByDeadline(opts ...sql.OrderTermOption) OrderOption {
+	return sql.OrderByField(FieldDeadline, opts...).ToFunc()
 }
 
 // ByStatus orders the results by the status field.

@@ -20,6 +20,7 @@ import (
 
 	"entgo.io/ent/dialect"
 	"entgo.io/ent/dialect/sql"
+	"github.com/e2b-dev/infra/packages/orchestrator/internal/db"
 	"github.com/e2b-dev/infra/packages/orchestrator/internal/dns"
 	"github.com/e2b-dev/infra/packages/orchestrator/internal/pkg/models"
 	"github.com/e2b-dev/infra/packages/orchestrator/internal/sandbox"
@@ -36,6 +37,7 @@ type server struct {
 	orchestrator.UnimplementedSandboxServiceServer
 	sandboxes     *smap.Map[*sandbox.Sandbox]
 	dns           *dns.DNS
+	db            *db.DB
 	tracer        trace.Tracer
 	networkPool   *network.Pool
 	templateCache *template.Cache

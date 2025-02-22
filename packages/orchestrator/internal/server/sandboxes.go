@@ -6,21 +6,24 @@ import (
 	"fmt"
 	"os"
 	"sync"
+	"time"
 
 	"go.opentelemetry.io/otel/attribute"
 	"golang.org/x/sync/semaphore"
 	"google.golang.org/grpc/codes"
-	"google.golang.org/grpc/status"
 	"google.golang.org/protobuf/types/known/emptypb"
 	"google.golang.org/protobuf/types/known/timestamppb"
 
 	"github.com/e2b-dev/infra/packages/orchestrator/internal/consul"
+	"github.com/e2b-dev/infra/packages/orchestrator/internal/pkg/models"
+	dbsandbox "github.com/e2b-dev/infra/packages/orchestrator/internal/pkg/models/sandbox"
 	"github.com/e2b-dev/infra/packages/orchestrator/internal/sandbox"
 	"github.com/e2b-dev/infra/packages/orchestrator/internal/sandbox/build"
 	"github.com/e2b-dev/infra/packages/shared/pkg/grpc/orchestrator"
 	"github.com/e2b-dev/infra/packages/shared/pkg/logs"
 	"github.com/e2b-dev/infra/packages/shared/pkg/storage"
 	"github.com/e2b-dev/infra/packages/shared/pkg/telemetry"
+	"github.com/gogo/status"
 )
 
 const maxParalellSnapshotting = 8
@@ -68,20 +71,34 @@ func (s *server) Create(ctx context.Context, req *orchestrator.SandboxCreateRequ
 
 		return nil, status.New(codes.Internal, err.Error()).Err()
 	}
+	started := time.Now()
 
 	s.sandboxes.Insert(req.Sandbox.SandboxId, sbx)
+	s.db.CreateSandbox(ctx, func(sc *models.SandboxCreate) {
+		sc.SetID(req.Sandbox.SandboxId)
+		sc.SetStatus(dbsandbox.Status(dbsandbox.StatusRunning))
+		sc.SetStartedAt(started)
+		sc.SetDeadline(req.EndTime.AsTime())
+	})
 
 	go func() {
 		if err := sbx.Wait(); err != nil {
 			fmt.Fprintf(os.Stderr, "failed to wait for Sandbox: %v\n", err)
 		}
+		ended := time.Now()
 
 		if err := cleanup.Run(); err != nil {
 			fmt.Fprintf(os.Stderr, "failed to cleanup Sandbox: %v\n", err)
 		}
 
 		s.sandboxes.Remove(req.Sandbox.SandboxId)
-
+		if err := s.db.UpdateSandbox(ctx, req.Sandbox.SandboxId, func(sbu *models.SandboxUpdateOne) {
+			sbu.SetStatus(dbsandbox.StatusTerminated).
+				SetTerminatedAt(time.Now().Round(time.Millisecond)).
+				SetDurationMs(ended.Sub(started).Milliseconds())
+		}); err != nil {
+			fmt.Fprintf(os.Stderr, "failed to cleanup db record for sandbox: %v\n", err)
+		}
 		logger.Infof("Sandbox killed")
 	}()
 
@@ -108,6 +125,12 @@ func (s *server) Update(ctx context.Context, req *orchestrator.SandboxUpdateRequ
 	}
 
 	item.EndAt = req.EndTime.AsTime()
+
+	if err := s.db.UpdateSandbox(ctx, req.SandboxId, func(sbu *models.SandboxUpdateOne) {
+		sbu.SetDeadline(item.EndAt)
+	}); err != nil {
+		return nil, status.New(codes.Internal, fmt.Sprintf("db update sandbox: %w", err)).Err()
+	}
 
 	return &emptypb.Empty{}, nil
 }
@@ -172,6 +195,12 @@ func (s *server) Delete(ctx context.Context, in *orchestrator.SandboxDeleteReque
 	sbx.Healthcheck(ctx, true)
 	sbx.LogMetrics(ctx)
 
+	if err := s.db.UpdateSandbox(ctx, in.SandboxId, func(sbu *models.SandboxUpdateOne) {
+		sbu.SetTerminatedAt(time.Now()).SetStatus(dbsandbox.StatusTerminated)
+	}); err != nil {
+		fmt.Fprintf(os.Stderr, "error setting sandbox deleted '%s': %v\n", in.SandboxId, err)
+	}
+
 	err := sbx.Stop()
 	if err != nil {
 		fmt.Fprintf(os.Stderr, "error stopping sandbox '%s': %v\n", in.SandboxId, err)
@@ -200,7 +229,6 @@ func (s *server) Pause(ctx context.Context, in *orchestrator.SandboxPauseRequest
 	defer releaseOnce()
 
 	s.pauseMu.Lock()
-
 	sbx, ok := s.sandboxes.Get(in.SandboxId)
 	if !ok {
 		s.pauseMu.Unlock()
@@ -213,6 +241,13 @@ func (s *server) Pause(ctx context.Context, in *orchestrator.SandboxPauseRequest
 
 	s.dns.Remove(in.SandboxId, sbx.Slot.HostIP())
 	s.sandboxes.Remove(in.SandboxId)
+
+	if err := s.db.UpdateSandbox(ctx, in.SandboxId, func(sbu *models.SandboxUpdateOne) {
+		// TODO: either stop accounting for duration or update duration in the wrapper.
+		sbu.SetDurationMs(time.Now().Sub(sbx.StartedAt).Milliseconds()).SetStatus(dbsandbox.StatusPaused)
+	}); err != nil {
+		fmt.Fprintf(os.Stderr, "error setting sandbox deleted '%s': %v\n", in.SandboxId, err)
+	}
 
 	s.pauseMu.Unlock()
 

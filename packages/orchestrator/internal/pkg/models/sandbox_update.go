@@ -30,20 +30,6 @@ func (su *SandboxUpdate) Where(ps ...predicate.Sandbox) *SandboxUpdate {
 	return su
 }
 
-// SetEndedAt sets the "ended_at" field.
-func (su *SandboxUpdate) SetEndedAt(t time.Time) *SandboxUpdate {
-	su.mutation.SetEndedAt(t)
-	return su
-}
-
-// SetNillableEndedAt sets the "ended_at" field if the given value is not nil.
-func (su *SandboxUpdate) SetNillableEndedAt(t *time.Time) *SandboxUpdate {
-	if t != nil {
-		su.SetEndedAt(*t)
-	}
-	return su
-}
-
 // SetUpdatedAt sets the "updated_at" field.
 func (su *SandboxUpdate) SetUpdatedAt(t time.Time) *SandboxUpdate {
 	su.mutation.SetUpdatedAt(t)
@@ -54,6 +40,34 @@ func (su *SandboxUpdate) SetUpdatedAt(t time.Time) *SandboxUpdate {
 func (su *SandboxUpdate) SetNillableUpdatedAt(t *time.Time) *SandboxUpdate {
 	if t != nil {
 		su.SetUpdatedAt(*t)
+	}
+	return su
+}
+
+// SetTerminatedAt sets the "terminated_at" field.
+func (su *SandboxUpdate) SetTerminatedAt(t time.Time) *SandboxUpdate {
+	su.mutation.SetTerminatedAt(t)
+	return su
+}
+
+// SetNillableTerminatedAt sets the "terminated_at" field if the given value is not nil.
+func (su *SandboxUpdate) SetNillableTerminatedAt(t *time.Time) *SandboxUpdate {
+	if t != nil {
+		su.SetTerminatedAt(*t)
+	}
+	return su
+}
+
+// SetDeadline sets the "deadline" field.
+func (su *SandboxUpdate) SetDeadline(t time.Time) *SandboxUpdate {
+	su.mutation.SetDeadline(t)
+	return su
+}
+
+// SetNillableDeadline sets the "deadline" field if the given value is not nil.
+func (su *SandboxUpdate) SetNillableDeadline(t *time.Time) *SandboxUpdate {
+	if t != nil {
+		su.SetDeadline(*t)
 	}
 	return su
 }
@@ -210,11 +224,14 @@ func (su *SandboxUpdate) sqlSave(ctx context.Context) (n int, err error) {
 			}
 		}
 	}
-	if value, ok := su.mutation.EndedAt(); ok {
-		_spec.SetField(sandbox.FieldEndedAt, field.TypeTime, value)
-	}
 	if value, ok := su.mutation.UpdatedAt(); ok {
 		_spec.SetField(sandbox.FieldUpdatedAt, field.TypeTime, value)
+	}
+	if value, ok := su.mutation.TerminatedAt(); ok {
+		_spec.SetField(sandbox.FieldTerminatedAt, field.TypeTime, value)
+	}
+	if value, ok := su.mutation.Deadline(); ok {
+		_spec.SetField(sandbox.FieldDeadline, field.TypeTime, value)
 	}
 	if value, ok := su.mutation.Status(); ok {
 		_spec.SetField(sandbox.FieldStatus, field.TypeEnum, value)
@@ -261,20 +278,6 @@ type SandboxUpdateOne struct {
 	modifiers []func(*sql.UpdateBuilder)
 }
 
-// SetEndedAt sets the "ended_at" field.
-func (suo *SandboxUpdateOne) SetEndedAt(t time.Time) *SandboxUpdateOne {
-	suo.mutation.SetEndedAt(t)
-	return suo
-}
-
-// SetNillableEndedAt sets the "ended_at" field if the given value is not nil.
-func (suo *SandboxUpdateOne) SetNillableEndedAt(t *time.Time) *SandboxUpdateOne {
-	if t != nil {
-		suo.SetEndedAt(*t)
-	}
-	return suo
-}
-
 // SetUpdatedAt sets the "updated_at" field.
 func (suo *SandboxUpdateOne) SetUpdatedAt(t time.Time) *SandboxUpdateOne {
 	suo.mutation.SetUpdatedAt(t)
@@ -285,6 +288,34 @@ func (suo *SandboxUpdateOne) SetUpdatedAt(t time.Time) *SandboxUpdateOne {
 func (suo *SandboxUpdateOne) SetNillableUpdatedAt(t *time.Time) *SandboxUpdateOne {
 	if t != nil {
 		suo.SetUpdatedAt(*t)
+	}
+	return suo
+}
+
+// SetTerminatedAt sets the "terminated_at" field.
+func (suo *SandboxUpdateOne) SetTerminatedAt(t time.Time) *SandboxUpdateOne {
+	suo.mutation.SetTerminatedAt(t)
+	return suo
+}
+
+// SetNillableTerminatedAt sets the "terminated_at" field if the given value is not nil.
+func (suo *SandboxUpdateOne) SetNillableTerminatedAt(t *time.Time) *SandboxUpdateOne {
+	if t != nil {
+		suo.SetTerminatedAt(*t)
+	}
+	return suo
+}
+
+// SetDeadline sets the "deadline" field.
+func (suo *SandboxUpdateOne) SetDeadline(t time.Time) *SandboxUpdateOne {
+	suo.mutation.SetDeadline(t)
+	return suo
+}
+
+// SetNillableDeadline sets the "deadline" field if the given value is not nil.
+func (suo *SandboxUpdateOne) SetNillableDeadline(t *time.Time) *SandboxUpdateOne {
+	if t != nil {
+		suo.SetDeadline(*t)
 	}
 	return suo
 }
@@ -471,11 +502,14 @@ func (suo *SandboxUpdateOne) sqlSave(ctx context.Context) (_node *Sandbox, err e
 			}
 		}
 	}
-	if value, ok := suo.mutation.EndedAt(); ok {
-		_spec.SetField(sandbox.FieldEndedAt, field.TypeTime, value)
-	}
 	if value, ok := suo.mutation.UpdatedAt(); ok {
 		_spec.SetField(sandbox.FieldUpdatedAt, field.TypeTime, value)
+	}
+	if value, ok := suo.mutation.TerminatedAt(); ok {
+		_spec.SetField(sandbox.FieldTerminatedAt, field.TypeTime, value)
+	}
+	if value, ok := suo.mutation.Deadline(); ok {
+		_spec.SetField(sandbox.FieldDeadline, field.TypeTime, value)
 	}
 	if value, ok := suo.mutation.Status(); ok {
 		_spec.SetField(sandbox.FieldStatus, field.TypeEnum, value)

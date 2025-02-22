@@ -69,14 +69,19 @@ func StartedAt(v time.Time) predicate.Sandbox {
 	return predicate.Sandbox(sql.FieldEQ(FieldStartedAt, v))
 }
 
-// EndedAt applies equality check predicate on the "ended_at" field. It's identical to EndedAtEQ.
-func EndedAt(v time.Time) predicate.Sandbox {
-	return predicate.Sandbox(sql.FieldEQ(FieldEndedAt, v))
-}
-
 // UpdatedAt applies equality check predicate on the "updated_at" field. It's identical to UpdatedAtEQ.
 func UpdatedAt(v time.Time) predicate.Sandbox {
 	return predicate.Sandbox(sql.FieldEQ(FieldUpdatedAt, v))
+}
+
+// TerminatedAt applies equality check predicate on the "terminated_at" field. It's identical to TerminatedAtEQ.
+func TerminatedAt(v time.Time) predicate.Sandbox {
+	return predicate.Sandbox(sql.FieldEQ(FieldTerminatedAt, v))
+}
+
+// Deadline applies equality check predicate on the "deadline" field. It's identical to DeadlineEQ.
+func Deadline(v time.Time) predicate.Sandbox {
+	return predicate.Sandbox(sql.FieldEQ(FieldDeadline, v))
 }
 
 // DurationMs applies equality check predicate on the "duration_ms" field. It's identical to DurationMsEQ.
@@ -134,46 +139,6 @@ func StartedAtLTE(v time.Time) predicate.Sandbox {
 	return predicate.Sandbox(sql.FieldLTE(FieldStartedAt, v))
 }
 
-// EndedAtEQ applies the EQ predicate on the "ended_at" field.
-func EndedAtEQ(v time.Time) predicate.Sandbox {
-	return predicate.Sandbox(sql.FieldEQ(FieldEndedAt, v))
-}
-
-// EndedAtNEQ applies the NEQ predicate on the "ended_at" field.
-func EndedAtNEQ(v time.Time) predicate.Sandbox {
-	return predicate.Sandbox(sql.FieldNEQ(FieldEndedAt, v))
-}
-
-// EndedAtIn applies the In predicate on the "ended_at" field.
-func EndedAtIn(vs ...time.Time) predicate.Sandbox {
-	return predicate.Sandbox(sql.FieldIn(FieldEndedAt, vs...))
-}
-
-// EndedAtNotIn applies the NotIn predicate on the "ended_at" field.
-func EndedAtNotIn(vs ...time.Time) predicate.Sandbox {
-	return predicate.Sandbox(sql.FieldNotIn(FieldEndedAt, vs...))
-}
-
-// EndedAtGT applies the GT predicate on the "ended_at" field.
-func EndedAtGT(v time.Time) predicate.Sandbox {
-	return predicate.Sandbox(sql.FieldGT(FieldEndedAt, v))
-}
-
-// EndedAtGTE applies the GTE predicate on the "ended_at" field.
-func EndedAtGTE(v time.Time) predicate.Sandbox {
-	return predicate.Sandbox(sql.FieldGTE(FieldEndedAt, v))
-}
-
-// EndedAtLT applies the LT predicate on the "ended_at" field.
-func EndedAtLT(v time.Time) predicate.Sandbox {
-	return predicate.Sandbox(sql.FieldLT(FieldEndedAt, v))
-}
-
-// EndedAtLTE applies the LTE predicate on the "ended_at" field.
-func EndedAtLTE(v time.Time) predicate.Sandbox {
-	return predicate.Sandbox(sql.FieldLTE(FieldEndedAt, v))
-}
-
 // UpdatedAtEQ applies the EQ predicate on the "updated_at" field.
 func UpdatedAtEQ(v time.Time) predicate.Sandbox {
 	return predicate.Sandbox(sql.FieldEQ(FieldUpdatedAt, v))
@@ -212,6 +177,86 @@ func UpdatedAtLT(v time.Time) predicate.Sandbox {
 // UpdatedAtLTE applies the LTE predicate on the "updated_at" field.
 func UpdatedAtLTE(v time.Time) predicate.Sandbox {
 	return predicate.Sandbox(sql.FieldLTE(FieldUpdatedAt, v))
+}
+
+// TerminatedAtEQ applies the EQ predicate on the "terminated_at" field.
+func TerminatedAtEQ(v time.Time) predicate.Sandbox {
+	return predicate.Sandbox(sql.FieldEQ(FieldTerminatedAt, v))
+}
+
+// TerminatedAtNEQ applies the NEQ predicate on the "terminated_at" field.
+func TerminatedAtNEQ(v time.Time) predicate.Sandbox {
+	return predicate.Sandbox(sql.FieldNEQ(FieldTerminatedAt, v))
+}
+
+// TerminatedAtIn applies the In predicate on the "terminated_at" field.
+func TerminatedAtIn(vs ...time.Time) predicate.Sandbox {
+	return predicate.Sandbox(sql.FieldIn(FieldTerminatedAt, vs...))
+}
+
+// TerminatedAtNotIn applies the NotIn predicate on the "terminated_at" field.
+func TerminatedAtNotIn(vs ...time.Time) predicate.Sandbox {
+	return predicate.Sandbox(sql.FieldNotIn(FieldTerminatedAt, vs...))
+}
+
+// TerminatedAtGT applies the GT predicate on the "terminated_at" field.
+func TerminatedAtGT(v time.Time) predicate.Sandbox {
+	return predicate.Sandbox(sql.FieldGT(FieldTerminatedAt, v))
+}
+
+// TerminatedAtGTE applies the GTE predicate on the "terminated_at" field.
+func TerminatedAtGTE(v time.Time) predicate.Sandbox {
+	return predicate.Sandbox(sql.FieldGTE(FieldTerminatedAt, v))
+}
+
+// TerminatedAtLT applies the LT predicate on the "terminated_at" field.
+func TerminatedAtLT(v time.Time) predicate.Sandbox {
+	return predicate.Sandbox(sql.FieldLT(FieldTerminatedAt, v))
+}
+
+// TerminatedAtLTE applies the LTE predicate on the "terminated_at" field.
+func TerminatedAtLTE(v time.Time) predicate.Sandbox {
+	return predicate.Sandbox(sql.FieldLTE(FieldTerminatedAt, v))
+}
+
+// DeadlineEQ applies the EQ predicate on the "deadline" field.
+func DeadlineEQ(v time.Time) predicate.Sandbox {
+	return predicate.Sandbox(sql.FieldEQ(FieldDeadline, v))
+}
+
+// DeadlineNEQ applies the NEQ predicate on the "deadline" field.
+func DeadlineNEQ(v time.Time) predicate.Sandbox {
+	return predicate.Sandbox(sql.FieldNEQ(FieldDeadline, v))
+}
+
+// DeadlineIn applies the In predicate on the "deadline" field.
+func DeadlineIn(vs ...time.Time) predicate.Sandbox {
+	return predicate.Sandbox(sql.FieldIn(FieldDeadline, vs...))
+}
+
+// DeadlineNotIn applies the NotIn predicate on the "deadline" field.
+func DeadlineNotIn(vs ...time.Time) predicate.Sandbox {
+	return predicate.Sandbox(sql.FieldNotIn(FieldDeadline, vs...))
+}
+
+// DeadlineGT applies the GT predicate on the "deadline" field.
+func DeadlineGT(v time.Time) predicate.Sandbox {
+	return predicate.Sandbox(sql.FieldGT(FieldDeadline, v))
+}
+
+// DeadlineGTE applies the GTE predicate on the "deadline" field.
+func DeadlineGTE(v time.Time) predicate.Sandbox {
+	return predicate.Sandbox(sql.FieldGTE(FieldDeadline, v))
+}
+
+// DeadlineLT applies the LT predicate on the "deadline" field.
+func DeadlineLT(v time.Time) predicate.Sandbox {
+	return predicate.Sandbox(sql.FieldLT(FieldDeadline, v))
+}
+
+// DeadlineLTE applies the LTE predicate on the "deadline" field.
+func DeadlineLTE(v time.Time) predicate.Sandbox {
+	return predicate.Sandbox(sql.FieldLTE(FieldDeadline, v))
 }
 
 // StatusEQ applies the EQ predicate on the "status" field.

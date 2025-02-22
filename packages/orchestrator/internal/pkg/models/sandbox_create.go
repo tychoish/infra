@@ -37,12 +37,6 @@ func (sc *SandboxCreate) SetNillableStartedAt(t *time.Time) *SandboxCreate {
 	return sc
 }
 
-// SetEndedAt sets the "ended_at" field.
-func (sc *SandboxCreate) SetEndedAt(t time.Time) *SandboxCreate {
-	sc.mutation.SetEndedAt(t)
-	return sc
-}
-
 // SetUpdatedAt sets the "updated_at" field.
 func (sc *SandboxCreate) SetUpdatedAt(t time.Time) *SandboxCreate {
 	sc.mutation.SetUpdatedAt(t)
@@ -54,6 +48,18 @@ func (sc *SandboxCreate) SetNillableUpdatedAt(t *time.Time) *SandboxCreate {
 	if t != nil {
 		sc.SetUpdatedAt(*t)
 	}
+	return sc
+}
+
+// SetTerminatedAt sets the "terminated_at" field.
+func (sc *SandboxCreate) SetTerminatedAt(t time.Time) *SandboxCreate {
+	sc.mutation.SetTerminatedAt(t)
+	return sc
+}
+
+// SetDeadline sets the "deadline" field.
+func (sc *SandboxCreate) SetDeadline(t time.Time) *SandboxCreate {
+	sc.mutation.SetDeadline(t)
 	return sc
 }
 
@@ -137,11 +143,14 @@ func (sc *SandboxCreate) check() error {
 	if _, ok := sc.mutation.StartedAt(); !ok {
 		return &ValidationError{Name: "started_at", err: errors.New(`models: missing required field "Sandbox.started_at"`)}
 	}
-	if _, ok := sc.mutation.EndedAt(); !ok {
-		return &ValidationError{Name: "ended_at", err: errors.New(`models: missing required field "Sandbox.ended_at"`)}
-	}
 	if _, ok := sc.mutation.UpdatedAt(); !ok {
 		return &ValidationError{Name: "updated_at", err: errors.New(`models: missing required field "Sandbox.updated_at"`)}
+	}
+	if _, ok := sc.mutation.TerminatedAt(); !ok {
+		return &ValidationError{Name: "terminated_at", err: errors.New(`models: missing required field "Sandbox.terminated_at"`)}
+	}
+	if _, ok := sc.mutation.Deadline(); !ok {
+		return &ValidationError{Name: "deadline", err: errors.New(`models: missing required field "Sandbox.deadline"`)}
 	}
 	if _, ok := sc.mutation.Status(); !ok {
 		return &ValidationError{Name: "status", err: errors.New(`models: missing required field "Sandbox.status"`)}
@@ -221,13 +230,17 @@ func (sc *SandboxCreate) createSpec() (*Sandbox, *sqlgraph.CreateSpec) {
 		_spec.SetField(sandbox.FieldStartedAt, field.TypeTime, value)
 		_node.StartedAt = value
 	}
-	if value, ok := sc.mutation.EndedAt(); ok {
-		_spec.SetField(sandbox.FieldEndedAt, field.TypeTime, value)
-		_node.EndedAt = &value
-	}
 	if value, ok := sc.mutation.UpdatedAt(); ok {
 		_spec.SetField(sandbox.FieldUpdatedAt, field.TypeTime, value)
 		_node.UpdatedAt = value
+	}
+	if value, ok := sc.mutation.TerminatedAt(); ok {
+		_spec.SetField(sandbox.FieldTerminatedAt, field.TypeTime, value)
+		_node.TerminatedAt = &value
+	}
+	if value, ok := sc.mutation.Deadline(); ok {
+		_spec.SetField(sandbox.FieldDeadline, field.TypeTime, value)
+		_node.Deadline = &value
 	}
 	if value, ok := sc.mutation.Status(); ok {
 		_spec.SetField(sandbox.FieldStatus, field.TypeEnum, value)
@@ -297,18 +310,6 @@ type (
 	}
 )
 
-// SetEndedAt sets the "ended_at" field.
-func (u *SandboxUpsert) SetEndedAt(v time.Time) *SandboxUpsert {
-	u.Set(sandbox.FieldEndedAt, v)
-	return u
-}
-
-// UpdateEndedAt sets the "ended_at" field to the value that was provided on create.
-func (u *SandboxUpsert) UpdateEndedAt() *SandboxUpsert {
-	u.SetExcluded(sandbox.FieldEndedAt)
-	return u
-}
-
 // SetUpdatedAt sets the "updated_at" field.
 func (u *SandboxUpsert) SetUpdatedAt(v time.Time) *SandboxUpsert {
 	u.Set(sandbox.FieldUpdatedAt, v)
@@ -318,6 +319,30 @@ func (u *SandboxUpsert) SetUpdatedAt(v time.Time) *SandboxUpsert {
 // UpdateUpdatedAt sets the "updated_at" field to the value that was provided on create.
 func (u *SandboxUpsert) UpdateUpdatedAt() *SandboxUpsert {
 	u.SetExcluded(sandbox.FieldUpdatedAt)
+	return u
+}
+
+// SetTerminatedAt sets the "terminated_at" field.
+func (u *SandboxUpsert) SetTerminatedAt(v time.Time) *SandboxUpsert {
+	u.Set(sandbox.FieldTerminatedAt, v)
+	return u
+}
+
+// UpdateTerminatedAt sets the "terminated_at" field to the value that was provided on create.
+func (u *SandboxUpsert) UpdateTerminatedAt() *SandboxUpsert {
+	u.SetExcluded(sandbox.FieldTerminatedAt)
+	return u
+}
+
+// SetDeadline sets the "deadline" field.
+func (u *SandboxUpsert) SetDeadline(v time.Time) *SandboxUpsert {
+	u.Set(sandbox.FieldDeadline, v)
+	return u
+}
+
+// UpdateDeadline sets the "deadline" field to the value that was provided on create.
+func (u *SandboxUpsert) UpdateDeadline() *SandboxUpsert {
+	u.SetExcluded(sandbox.FieldDeadline)
 	return u
 }
 
@@ -438,20 +463,6 @@ func (u *SandboxUpsertOne) Update(set func(*SandboxUpsert)) *SandboxUpsertOne {
 	return u
 }
 
-// SetEndedAt sets the "ended_at" field.
-func (u *SandboxUpsertOne) SetEndedAt(v time.Time) *SandboxUpsertOne {
-	return u.Update(func(s *SandboxUpsert) {
-		s.SetEndedAt(v)
-	})
-}
-
-// UpdateEndedAt sets the "ended_at" field to the value that was provided on create.
-func (u *SandboxUpsertOne) UpdateEndedAt() *SandboxUpsertOne {
-	return u.Update(func(s *SandboxUpsert) {
-		s.UpdateEndedAt()
-	})
-}
-
 // SetUpdatedAt sets the "updated_at" field.
 func (u *SandboxUpsertOne) SetUpdatedAt(v time.Time) *SandboxUpsertOne {
 	return u.Update(func(s *SandboxUpsert) {
@@ -463,6 +474,34 @@ func (u *SandboxUpsertOne) SetUpdatedAt(v time.Time) *SandboxUpsertOne {
 func (u *SandboxUpsertOne) UpdateUpdatedAt() *SandboxUpsertOne {
 	return u.Update(func(s *SandboxUpsert) {
 		s.UpdateUpdatedAt()
+	})
+}
+
+// SetTerminatedAt sets the "terminated_at" field.
+func (u *SandboxUpsertOne) SetTerminatedAt(v time.Time) *SandboxUpsertOne {
+	return u.Update(func(s *SandboxUpsert) {
+		s.SetTerminatedAt(v)
+	})
+}
+
+// UpdateTerminatedAt sets the "terminated_at" field to the value that was provided on create.
+func (u *SandboxUpsertOne) UpdateTerminatedAt() *SandboxUpsertOne {
+	return u.Update(func(s *SandboxUpsert) {
+		s.UpdateTerminatedAt()
+	})
+}
+
+// SetDeadline sets the "deadline" field.
+func (u *SandboxUpsertOne) SetDeadline(v time.Time) *SandboxUpsertOne {
+	return u.Update(func(s *SandboxUpsert) {
+		s.SetDeadline(v)
+	})
+}
+
+// UpdateDeadline sets the "deadline" field to the value that was provided on create.
+func (u *SandboxUpsertOne) UpdateDeadline() *SandboxUpsertOne {
+	return u.Update(func(s *SandboxUpsert) {
+		s.UpdateDeadline()
 	})
 }
 
@@ -761,20 +800,6 @@ func (u *SandboxUpsertBulk) Update(set func(*SandboxUpsert)) *SandboxUpsertBulk 
 	return u
 }
 
-// SetEndedAt sets the "ended_at" field.
-func (u *SandboxUpsertBulk) SetEndedAt(v time.Time) *SandboxUpsertBulk {
-	return u.Update(func(s *SandboxUpsert) {
-		s.SetEndedAt(v)
-	})
-}
-
-// UpdateEndedAt sets the "ended_at" field to the value that was provided on create.
-func (u *SandboxUpsertBulk) UpdateEndedAt() *SandboxUpsertBulk {
-	return u.Update(func(s *SandboxUpsert) {
-		s.UpdateEndedAt()
-	})
-}
-
 // SetUpdatedAt sets the "updated_at" field.
 func (u *SandboxUpsertBulk) SetUpdatedAt(v time.Time) *SandboxUpsertBulk {
 	return u.Update(func(s *SandboxUpsert) {
@@ -786,6 +811,34 @@ func (u *SandboxUpsertBulk) SetUpdatedAt(v time.Time) *SandboxUpsertBulk {
 func (u *SandboxUpsertBulk) UpdateUpdatedAt() *SandboxUpsertBulk {
 	return u.Update(func(s *SandboxUpsert) {
 		s.UpdateUpdatedAt()
+	})
+}
+
+// SetTerminatedAt sets the "terminated_at" field.
+func (u *SandboxUpsertBulk) SetTerminatedAt(v time.Time) *SandboxUpsertBulk {
+	return u.Update(func(s *SandboxUpsert) {
+		s.SetTerminatedAt(v)
+	})
+}
+
+// UpdateTerminatedAt sets the "terminated_at" field to the value that was provided on create.
+func (u *SandboxUpsertBulk) UpdateTerminatedAt() *SandboxUpsertBulk {
+	return u.Update(func(s *SandboxUpsert) {
+		s.UpdateTerminatedAt()
+	})
+}
+
+// SetDeadline sets the "deadline" field.
+func (u *SandboxUpsertBulk) SetDeadline(v time.Time) *SandboxUpsertBulk {
+	return u.Update(func(s *SandboxUpsert) {
+		s.SetDeadline(v)
+	})
+}
+
+// UpdateDeadline sets the "deadline" field to the value that was provided on create.
+func (u *SandboxUpsertBulk) UpdateDeadline() *SandboxUpsertBulk {
+	return u.Update(func(s *SandboxUpsert) {
+		s.UpdateDeadline()
 	})
 }
 

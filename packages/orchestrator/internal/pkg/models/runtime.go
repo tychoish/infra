@@ -21,19 +21,19 @@ func init() {
 	// sandbox.DefaultStartedAt holds the default value on creation for the started_at field.
 	sandbox.DefaultStartedAt = sandboxDescStartedAt.Default.(func() time.Time)
 	// sandboxDescUpdatedAt is the schema descriptor for updated_at field.
-	sandboxDescUpdatedAt := sandboxFields[3].Descriptor()
+	sandboxDescUpdatedAt := sandboxFields[2].Descriptor()
 	// sandbox.DefaultUpdatedAt holds the default value on creation for the updated_at field.
 	sandbox.DefaultUpdatedAt = sandboxDescUpdatedAt.Default.(func() time.Time)
 	// sandboxDescDurationMs is the schema descriptor for duration_ms field.
-	sandboxDescDurationMs := sandboxFields[5].Descriptor()
+	sandboxDescDurationMs := sandboxFields[6].Descriptor()
 	// sandbox.DurationMsValidator is a validator for the "duration_ms" field. It is called by the builders before save.
 	sandbox.DurationMsValidator = sandboxDescDurationMs.Validators[0].(func(int64) error)
 	// sandboxDescVersion is the schema descriptor for version field.
-	sandboxDescVersion := sandboxFields[6].Descriptor()
+	sandboxDescVersion := sandboxFields[7].Descriptor()
 	// sandbox.VersionValidator is a validator for the "version" field. It is called by the builders before save.
 	sandbox.VersionValidator = sandboxDescVersion.Validators[0].(func(int64) error)
 	// sandboxDescGlobalVersion is the schema descriptor for global_version field.
-	sandboxDescGlobalVersion := sandboxFields[7].Descriptor()
+	sandboxDescGlobalVersion := sandboxFields[8].Descriptor()
 	// sandbox.GlobalVersionValidator is a validator for the "global_version" field. It is called by the builders before save.
 	sandbox.GlobalVersionValidator = sandboxDescGlobalVersion.Validators[0].(func(int64) error)
 	// sandboxDescID is the schema descriptor for id field.
