@@ -4,16 +4,18 @@ import (
 	"context"
 	"errors"
 	"fmt"
-	"log"
 	"math"
 	"net"
 	"sync"
 	"sync/atomic"
 
+	"github.com/grpc-ecosystem/go-grpc-middleware/v2/interceptors/logging"
 	"github.com/grpc-ecosystem/go-grpc-middleware/v2/interceptors/recovery"
+	"github.com/grpc-ecosystem/go-grpc-middleware/v2/interceptors/selector"
 	"go.opentelemetry.io/contrib/instrumentation/google.golang.org/grpc/otelgrpc"
 	"go.opentelemetry.io/otel"
 	"go.opentelemetry.io/otel/trace"
+	"go.uber.org/zap"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/health"
 	"google.golang.org/grpc/health/grpc_health_v1"
@@ -28,6 +30,7 @@ import (
 	"github.com/e2b-dev/infra/packages/orchestrator/internal/sandbox/template"
 	e2bgrpc "github.com/e2b-dev/infra/packages/shared/pkg/grpc"
 	"github.com/e2b-dev/infra/packages/shared/pkg/grpc/orchestrator"
+	"github.com/e2b-dev/infra/packages/shared/pkg/logger"
 	"github.com/e2b-dev/infra/packages/shared/pkg/smap"
 )
 
@@ -79,10 +82,26 @@ func New(ctx context.Context, port uint) (*Service, error) {
 	// BLOCK: initialize services
 	{
 		srv.dns = dns.New()
+
+		opts := []logging.Option{
+			logging.WithLogOnEvents(logging.StartCall, logging.PayloadReceived, logging.PayloadSent, logging.FinishCall),
+			logging.WithLevels(logging.DefaultServerCodeToLevel),
+			logging.WithFieldsFromContext(logging.ExtractFields),
+		}
 		srv.grpc = grpc.NewServer(
 			grpc.StatsHandler(e2bgrpc.NewStatsWrapper(otelgrpc.NewServerHandler())),
 			grpc.ChainUnaryInterceptor(
 				recovery.UnaryServerInterceptor(),
+				selector.UnaryServerInterceptor(
+					logging.UnaryServerInterceptor(logger.GRPCLogger(zap.L()), opts...),
+					logger.WithoutHealthCheck(),
+				),
+			),
+			grpc.ChainStreamInterceptor(
+				selector.StreamServerInterceptor(
+					logging.StreamServerInterceptor(logger.GRPCLogger(zap.L()), opts...),
+					logger.WithoutHealthCheck(),
+				),
 			),
 		)
 
@@ -121,17 +140,17 @@ func (srv *Service) Start(context.Context) error {
 	if !srv.started.CompareAndSwap(false, true) {
 		return errors.New("cannot start the orchestrator service more than once")
 	}
-	log.Print("starting orchestrator service")
+	zap.L().Info("starting orchestrator service")
 
 	wg := sync.WaitGroup{}
 	wg.Add(1)
 	go func() {
-		defer log.Print("DNS server return")
+		defer zap.L().Info("DNS server returned")
 		defer wg.Done()
 
-		log.Print("Starting DNS server")
+		zap.L().Info("Starting DNS server")
 		if err := srv.dns.Start("127.0.0.4", 53); err != nil {
-			log.Panic(fmt.Errorf("Failed running DNS server: %w", err))
+			zap.L().Panic("Failed running DNS server", zap.Error(err))
 		}
 	}()
 
@@ -143,17 +162,17 @@ func (srv *Service) Start(context.Context) error {
 
 	wg.Add(1)
 	go func() {
-		defer log.Print("gRPC service returned")
+		defer zap.L().Info("gRPC service returned")
 		defer wg.Done()
 
-		log.Printf("starting server on port %d", srv.port)
+		zap.L().Info("Starting orchestrator server", zap.Uint16("port", srv.port))
 		if err := srv.grpc.Serve(lis); err != nil {
-			log.Panic(fmt.Errorf("failed to serve: %w", err))
+			zap.L().Fatal("grpc server failed to serve", zap.Error(err))
 		}
 	}()
 
 	srv.shutdown.op = func(ctx context.Context) error {
-		defer log.Print("orchestrator service has completed shutdown")
+		defer zap.L().Info("orchestrator service has completed shutdown")
 
 		var errs []error
 
@@ -180,6 +199,15 @@ func (srv *Service) Start(context.Context) error {
 }
 
 func (srv *Service) Close(ctx context.Context) error {
-	srv.shutdown.once.Do(func() { srv.shutdown.err = srv.shutdown.op(ctx); srv.shutdown.op = nil })
+	srv.shutdown.once.Do(func() {
+		if srv.shutdown.op == nil {
+			// should only be true if there was an error
+			// during startup.
+			return
+		}
+
+		srv.shutdown.err = srv.shutdown.op(ctx)
+		srv.shutdown.op = nil
+	})
 	return srv.shutdown.err
 }

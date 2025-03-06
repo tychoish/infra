@@ -27,3 +27,6 @@ migrate:
 	@rm ./migration.sql
 	@echo "Done"
 
+.PHONY: test
+test:
+	go test -v ./pkg/...
