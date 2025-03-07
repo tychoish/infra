@@ -444,6 +444,8 @@ components:
       enum:
         - ready
         - draining
+        - connecting
+        - unhealthy
 
     NodeStatusChange:
       required:
@@ -459,6 +461,8 @@ components:
         - sandboxCount
         - allocatedCPU
         - allocatedMemoryMiB
+        - createFails
+        - sandboxStartingCount
       properties:
         nodeID:
           type: string
@@ -477,6 +481,14 @@ components:
           type: integer
           format: int32
           description: Amount of allocated memory in MiB
+        createFails:
+          type: integer
+          format: uint64
+          description: Number of sandbox create fails
+        sandboxStartingCount:
+          type: integer
+          format: int
+          description: Number of starting Sandboxes
 
     NodeDetail:
       required:
@@ -484,6 +496,7 @@ components:
         - status
         - sandboxes
         - cachedBuilds
+        - createFails
       properties:
         nodeID:
           type: string
@@ -500,6 +513,10 @@ components:
             description: List of cached builds id on the node
             items:
                 type: string
+        createFails:
+          type: integer
+          format: uint64
+          description: Number of sandbox create fails
 
 
     Error:

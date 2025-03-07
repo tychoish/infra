@@ -2,27 +2,33 @@ package server
 
 import (
 	"context"
+	"database/sql"
 	"errors"
 	"fmt"
-	"log"
 	"math"
 	"net"
 	"sync"
+	"sync/atomic"
 
+	"github.com/grpc-ecosystem/go-grpc-middleware/v2/interceptors/logging"
 	"github.com/grpc-ecosystem/go-grpc-middleware/v2/interceptors/recovery"
+	"github.com/grpc-ecosystem/go-grpc-middleware/v2/interceptors/selector"
 	"go.opentelemetry.io/contrib/instrumentation/google.golang.org/grpc/otelgrpc"
 	"go.opentelemetry.io/otel"
 	"go.opentelemetry.io/otel/trace"
+	"go.uber.org/zap"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/health"
 	"google.golang.org/grpc/health/grpc_health_v1"
 
+	"github.com/e2b-dev/infra/packages/orchestrator/internal/db"
 	"github.com/e2b-dev/infra/packages/orchestrator/internal/dns"
 	"github.com/e2b-dev/infra/packages/orchestrator/internal/sandbox"
 	"github.com/e2b-dev/infra/packages/orchestrator/internal/sandbox/network"
 	"github.com/e2b-dev/infra/packages/orchestrator/internal/sandbox/template"
 	e2bgrpc "github.com/e2b-dev/infra/packages/shared/pkg/grpc"
 	"github.com/e2b-dev/infra/packages/shared/pkg/grpc/orchestrator"
+	"github.com/e2b-dev/infra/packages/shared/pkg/logger"
 	"github.com/e2b-dev/infra/packages/shared/pkg/smap"
 )
 
@@ -32,6 +38,7 @@ type server struct {
 	orchestrator.UnimplementedSandboxServiceServer
 	sandboxes     *smap.Map[*sandbox.Sandbox]
 	dns           *dns.DNS
+	db            *db.DB
 	tracer        trace.Tracer
 	networkPool   *network.Pool
 	templateCache *template.Cache
@@ -44,6 +51,8 @@ type Service struct {
 	grpc     *grpc.Server
 	dns      *dns.DNS
 	port     uint16
+	db       *db.DB
+	started  atomic.Bool
 	shutdown struct {
 		once sync.Once
 		op   func(context.Context) error
@@ -71,10 +80,26 @@ func New(ctx context.Context, port uint) (*Service, error) {
 	// BLOCK: initialize services
 	{
 		srv.dns = dns.New()
+
+		opts := []logging.Option{
+			logging.WithLogOnEvents(logging.StartCall, logging.PayloadReceived, logging.PayloadSent, logging.FinishCall),
+			logging.WithLevels(logging.DefaultServerCodeToLevel),
+			logging.WithFieldsFromContext(logging.ExtractFields),
+		}
 		srv.grpc = grpc.NewServer(
 			grpc.StatsHandler(e2bgrpc.NewStatsWrapper(otelgrpc.NewServerHandler())),
 			grpc.ChainUnaryInterceptor(
 				recovery.UnaryServerInterceptor(),
+				selector.UnaryServerInterceptor(
+					logging.UnaryServerInterceptor(logger.GRPCLogger(zap.L()), opts...),
+					logger.WithoutHealthCheck(),
+				),
+			),
+			grpc.ChainStreamInterceptor(
+				selector.StreamServerInterceptor(
+					logging.StreamServerInterceptor(logger.GRPCLogger(zap.L()), opts...),
+					logger.WithoutHealthCheck(),
+				),
 			),
 		)
 
@@ -84,6 +109,20 @@ func New(ctx context.Context, port uint) (*Service, error) {
 			sandboxes:     smap.New[*sandbox.Sandbox](),
 			networkPool:   networkPool,
 			templateCache: templateCache,
+		}
+	}
+
+	// BLOCK: setup database
+	{
+		const dbConnStr = "file:./db/sandboxes.db?_journal_mode=wal"
+		drv, err := sql.Open("sqlite3", dbConnStr)
+		if err != nil {
+			return nil, fmt.Errorf("connecting to %q: %w", dbConnStr, err)
+		}
+
+		srv.db, err = db.New(drv)
+		if err != nil {
+			return nil, fmt.Errorf("using database at %q: %w", dbConnStr, err)
 		}
 	}
 
@@ -99,10 +138,20 @@ func (srv *Service) Start(context.Context) error {
 		return errors.New("orchestrator services are not initialized")
 	}
 
+	if !srv.started.CompareAndSwap(false, true) {
+		return errors.New("cannot start the orchestrator service more than once")
+	}
+	zap.L().Info("starting orchestrator service")
+
+	wg := sync.WaitGroup{}
+	wg.Add(1)
 	go func() {
-		log.Printf("Starting DNS server")
+		defer zap.L().Info("DNS server returned")
+		defer wg.Done()
+
+		zap.L().Info("Starting DNS server")
 		if err := srv.dns.Start("127.0.0.4", 53); err != nil {
-			log.Panic(fmt.Errorf("Failed running DNS server: %w", err))
+			zap.L().Panic("Failed running DNS server", zap.Error(err))
 		}
 	}()
 
@@ -112,15 +161,20 @@ func (srv *Service) Start(context.Context) error {
 		return fmt.Errorf("failed to listen on port %d: %w", srv.port, err)
 	}
 
-	log.Printf("starting server on port %d", srv.port)
-
+	wg.Add(1)
 	go func() {
+		defer zap.L().Info("gRPC service returned")
+		defer wg.Done()
+
+		zap.L().Info("Starting orchestrator server", zap.Uint16("port", srv.port))
 		if err := srv.grpc.Serve(lis); err != nil {
-			log.Panic(fmt.Errorf("failed to serve: %w", err))
+			zap.L().Fatal("grpc server failed to serve", zap.Error(err))
 		}
 	}()
 
 	srv.shutdown.op = func(ctx context.Context) error {
+		defer zap.L().Info("orchestrator service has completed shutdown")
+
 		var errs []error
 
 		srv.grpc.GracefulStop()
@@ -129,7 +183,13 @@ func (srv *Service) Start(context.Context) error {
 			errs = append(errs, err)
 		}
 
+		wg.Wait()
+
 		if err := srv.dns.Close(ctx); err != nil {
+			errs = append(errs, err)
+		}
+
+		if err := srv.db.Close(ctx); err != nil {
 			errs = append(errs, err)
 		}
 
